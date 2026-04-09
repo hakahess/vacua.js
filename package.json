@@ -1,0 +1,50 @@
+{
+  "name": "vacua.js",
+  "version": "1.2.2",
+  "description": "SDK officiel JavaScript/TypeScript pour l'API et le Gateway VACUA",
+  "keywords": [
+    "vacua",
+    "bot",
+    "sdk",
+    "discord-like",
+    "chat",
+    "gateway"
+  ],
+  "homepage": "https://vacua.app/developers/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hakahess/vacua.js"
+  },
+  "license": "MIT",
+  "author": "VACUA Team",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
