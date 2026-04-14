@@ -78,7 +78,7 @@ import { EmbedBuilder } from 'vacua.js'
 const embed = new EmbedBuilder()
   .setTitle('Hello World')
   .setDescription('This is an embed')
-  .setColor('#5865F2')
+  .setColor('#7C3AED')
   .setTimestamp()
 
 message.channel.send({ embeds: [embed] })

@@ -1,6 +1,6 @@
 /**
  * vacua.js — SDK officiel pour l'API et le Gateway VACUA
- * v1.2.0 — Full Discord.js-compatible API layer
+ * v1.2.2 — Full Discord.js-compatible API layer
  * https://vacua.app/developers/docs
  */
 
@@ -1098,10 +1098,11 @@ export class Client extends EventEmitter<ClientEvents> {
   private _prefix:        string = "!"
   private token:          string | null = null
   private rest:           REST | null   = null
-  private socket:         Socket | null = null
-  private baseUrl:        string
-  private intentsBits:    number
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  private socket:              Socket | null = null
+  private baseUrl:             string
+  private intentsBits:         number
+  private heartbeatTimer:      ReturnType<typeof setInterval> | null = null
+  private heartbeatIntervalMs: number = 41_250  // default, overridden by HELLO
 
   constructor(options: ClientOptions = {}) {
     super()
@@ -1129,8 +1130,9 @@ export class Client extends EventEmitter<ClientEvents> {
   destroy(): void {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
     this.socket?.disconnect()
-    this.socket        = null
-    this.heartbeatTimer = null
+    this.socket              = null
+    this.heartbeatTimer      = null
+    this.heartbeatIntervalMs = 41_250
   }
 
   /** Update the bot's status and activity */
@@ -1166,6 +1168,16 @@ export class Client extends EventEmitter<ClientEvents> {
       this.emit("error", new VacuaError(err?.message ?? "Gateway error", err?.code ?? 500))
     })
 
+    // HELLO — reçu en premier, avant READY. Communique l'intervalle heartbeat du serveur.
+    this.socket.on("HELLO", (data: { heartbeatInterval?: number }) => {
+      this.heartbeatIntervalMs = data?.heartbeatInterval ?? 41_250
+      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
+      this.heartbeatTimer = setInterval(() => {
+        this.socket?.emit("HEARTBEAT")
+      }, this.heartbeatIntervalMs)
+      this.emit("debug", `[Gateway] HELLO — heartbeat interval: ${this.heartbeatIntervalMs}ms`)
+    })
+
     this.socket.on("READY", (data: {
       v:           number
       application: { id: string; name: string }
@@ -1183,11 +1195,12 @@ export class Client extends EventEmitter<ClientEvents> {
         }
       }
 
-      // Start heartbeat
-      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
-      this.heartbeatTimer = setInterval(() => {
-        this.socket?.emit("HEARTBEAT")
-      }, 30_000)
+      // Fallback heartbeat si HELLO n'a pas encore été reçu (compatibilité serveurs anciens)
+      if (!this.heartbeatTimer) {
+        this.heartbeatTimer = setInterval(() => {
+          this.socket?.emit("HEARTBEAT")
+        }, this.heartbeatIntervalMs)
+      }
 
       // Request full guild data (name, icon, memberCount, roles)
       this.socket?.emit("REQUEST_GUILDS")
